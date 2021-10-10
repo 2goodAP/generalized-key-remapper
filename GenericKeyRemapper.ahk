@@ -12,10 +12,10 @@ SetTitleMatchMode RegEx ; Enable RegEx matching for window titles.
 
 ; ---------------------------- Global Constants ---------------------------- ;
 
+CONFIG_DIR := A_ScriptDir
 PROFILES_DIR := A_ScriptDir . "\Profiles"
-SETTINGS_DIR := A_ScriptDir
 
-SETTINGS_FILE := SETTINGS_DIR . "\GKRSettings.ini"
+CONFIG_FILE := CONFIG_DIR . "\GKRConfig.ini"
 DEFAULT_PROFILE := PROFILES_DIR . "\DefaultProfile.ini"
 
 CTRL_KEY := "^"
@@ -35,11 +35,13 @@ DEFAULT_GLOBAL_HOTKEY := "CTRL+F2"
 
 ; ---------------------------- Error Constants ---------------------------- ;
 
-CONFIG_READ_ERROR := 1
-CONFIG_WRITE_ERROR := 2
-KEY_REBIND_ERROR := 3
-REPEAT_MODIFIER_ERROR := 4
-GLOBAL_HOTKEY_ERROR := 5
+MISSING_CONFIG_ERROR := 1
+CONFIG_READ_ERROR := 2
+CONFIG_WRITE_ERROR := 3
+GLOBAL_HOTKEY_ERROR := 4
+REPEAT_MODIFIER_ERROR := 5
+KEY_REBIND_ERROR := 6
+WINDOW_NAME_ERROR := 7
 
 
 ; ------------------------------ Main ------------------------------ ;
@@ -48,58 +50,59 @@ GLOBAL_HOTKEY_ERROR := 5
 main:
 {
 	GKRState := "Off"
-	defaultSettings := "[General]"
+	defaultConfig := "[General]"
 					   . "`nglobalHotkey=" . DEFAULT_GLOBAL_HOTKEY
+					   . "`n[Profile]"
 					   . "`nactiveProfile=" . DEFAULT_PROFILE
-	defaultProfile := "[Window]"
-					  . "`nallowedWindows="
+	defaultProfile := "[Permission]"
+					  . "`npermittedWindows="
 					  . "`n[Rebinds]"
 
-	configSettings := initConfiguration(SETTINGS_FILE, defaultSettings)
-	profileSettings := initConfiguration(configSettings["General"]["activeProfile"]
+	configSettings := initConfiguration(CONFIG_FILE, defaultConfig)
+	profileSettings := initConfiguration(configSettings["Profile"]["activeProfile"]
 										 , defaultProfile)
 
 	If (configSettings["General"]["globalHotkey"] = "")
 	{
-		MsgBox, Error processing missing global hotkey in %SETTINGS_FILE%.
-		
-		ExitApp, GLOBAL_HOTKEY_ERROR
+		MsgBox, Error processing missing global hotkey in:`n%CONFIG_FILE%
+
+		ExitApp, %GLOBAL_HOTKEY_ERROR%
 	}
-	
+
 	globalHotkey := parseHotkey(configSettings["General"]["globalHotkey"])
 	keyRebinds := parseRebinds(profileSettings["Rebinds"])
-	
-	winGroupName := createWindowGroup(profileSettings["Window"]["allowedWindows"])
-	
+
+	winGroupName := createWindowGroup(profileSettings["Permission"]["permittedWindows"])
+
 	activityToggleFunc := Func("toggleGKRActivity")
 		.Bind(configSettings["General"]["activeProfile"]
 			  , winGroupName, keyRebinds)
-	
+
 	Try
-		Hotkey, ^f2, % activityToggleFunc
+		Hotkey, %globalHotkey%, % activityToggleFunc
 	Catch err
 	{
-		MsgBox, % "Error processing global hotkey in " SETTINGS_FILE ". " err.message
-		
-		ExitApp, GLOBAL_HOTKEY_ERROR
+		MsgBox, % "Error processing global hotkey in:`n" CONFIG_FILE "`n" err.message
+
+		ExitApp, %GLOBAL_HOTKEY_ERROR%
 	}
-	
+
 	Return
 }
-	
-	
+
+
 toggleGKRActivity(profile, groupName, rebinds)
 {
 	Global GKRState
-	
+
 	If (GKRState = "On")
 		GKRState:= "Off"
 	Else
 		GKRState := "On"
-	
+
 	MsgBox, Hotkeys %GKRState%
 	rebindKeysForGroup(rebinds, groupName, GKRState)
-	
+
 	Return
 }
 
@@ -108,30 +111,30 @@ toggleGKRActivity(profile, groupName, rebinds)
 
 
 parseRebinds(rebinds)
-{	
+{
 	If (rebinds = "")
 		Return ""
 
 	Global KEY_REBIND_ERROR
 	parsedRebinds := {}
-	
+
 	For fromKey, toKeys in rebinds
 	{
 		If (fromKey != "" && toKeys = "")
 		{
-			MsgBox, Error binding %fromKey% to nothing in %profile%.
+			MsgBox, Error binding %fromKey% to nothing in:`n%profile%
 
-			ExitApp, KEY_REBIND_ERROR
+			ExitApp, %KEY_REBIND_ERROR%
 		}
 		Else If (fromKey = "" && toKeys != "")
 		{
-			MsgBox, Error binding nothing to %toKeys% in %profile%.
+			MsgBox, Error binding nothing to %toKeys% in:`n%profile%
 
-			ExitApp, KEY_REBIND_ERROR
+			ExitApp, %KEY_REBIND_ERROR%
 		}
 		Else If (fromKey != "" && toKeys != "")
 		{
-			toKeys := StrSplit(toKeys, "<~>")
+			toKeys := StrSplit(toKeys, "<~>", " `t")
 			parsedFromKey := parseHotkey(fromKey)
 			parsedRebinds[parsedFromKey] := []
 
@@ -139,7 +142,7 @@ parseRebinds(rebinds)
 				parsedRebinds[parsedFromKey].Push(parseHotkey(toKey, True))
 		}
 	}
-	
+
 	Return parsedRebinds
 }
 
@@ -148,7 +151,7 @@ parseRebinds(rebinds)
 rebindKeysForGroup(rebinds, groupName, hkState)
 {
 	Global KEY_REBIND_ERROR
-	
+
 	If (rebinds != "")
 		For fromKey, toKeys in rebinds
 			rebindKeys(fromKey, toKeys, groupName, hkState)
@@ -159,10 +162,21 @@ rebindKeysForGroup(rebinds, groupName, hkState)
 
 rebindKeys(fromKey, toKeys, groupName, hkState)
 {
-	simulateToKeys := Func("_simulateKeys").Bind(toKeys)
-	Hotkey, IfWinActive, ahk_group %groupName%
-	Hotkey, ~%fromKey%, % simulateToKeys, %hkState%
-	
+	Global KEY_REBIND_ERROR
+	emulateToKeys := Func("_emulateKeys").Bind(toKeys)
+
+	Try
+	{
+		Hotkey, IfWinActive, ahk_group %groupName%
+		Hotkey, ~%fromKey%, % emulateToKeys, %hkState%
+	}
+	Catch e
+	{
+		MsgBox, % "Error processing rebind.`n" e.message
+
+		ExitApp, %KEY_REBIND_ERROR%
+	}
+
 	Return
 }
 
@@ -172,18 +186,40 @@ rebindKeys(fromKey, toKeys, groupName, hkState)
 
 initConfiguration(configFile, defaultConfig)
 {
+	Global MISSING_CONFIG_ERROR
+
+	If (configFile = "")
+	{
+		MsgBox, Error processing configuration file.`nNo path specified for a valid config file.
+
+		ExitApp, %MISSING_CONFIG_ERROR%
+	}
+
 	Global CONFIG_WRITE_ERROR, CONFIG_READ_ERROR
+	SplitPath, configFile,, configDir
 	config := {}
-	
-	If (FileExist(configFile) = "")
-	{		
-		FileAppend, %defaultConfig%, %configFile%
-		
+
+	If (FileExist(configDir) = "")
+	{
+		FileCreateDir, %configDir%
+
 		If (ErrorLevel)
 		{
-			MsgBox, Error writing file %configFile%. Please check your disk space or try running the program as administrator.
+			MsgBox, Error creating folder %configDir%.`nPlease check your disk space or try running the program as administrator.
 
-			ExitApp, CONFIG_WRITE_ERROR
+			ExitApp, %CONFIG_WRITE_ERROR%
+		}
+	}
+
+	If (FileExist(configFile) = "")
+	{
+		FileAppend, %defaultConfig%, %configFile%
+
+		If (ErrorLevel)
+		{
+			MsgBox, Error writing file %configFile%.`nPlease check your disk space or try running the program as administrator.
+
+			ExitApp, %CONFIG_WRITE_ERROR%
 		}
 	}
 
@@ -191,7 +227,7 @@ initConfiguration(configFile, defaultConfig)
 
 	If (config = "")
 	{
-		MsgBox, 0x4,, Error reading %configFile%. Recreating it may solve the problem. Recreate it?
+		MsgBox, 0x4,, Error reading file %configFile%.`nRecreating it may solve the problem.`nRecreate it?
 
 		IfMsgBox Yes
 		{
@@ -199,68 +235,70 @@ initConfiguration(configFile, defaultConfig)
 			config := initConfiguration(configFile, defaultConfig)
 		}
 		Else
-			ExitApp, CONFIG_READ_ERROR
+			ExitApp, %CONFIG_READ_ERROR%
 	}
 	Else
 		config["firstRun"] := False
-	
+
 	Return config
 }
 
 
-createWindowGroup(allowedWins)
+createWindowGroup(permittedWins)
 {
-	groupName := "AllowedWindows"
+	groupName := "PermittedWindows"
 
-	If (allowedWins = "")
+	If (permittedWins = "")
 	{
 		GroupAdd, %groupName%
-		
+
 		Return groupName
 	}
-	
-	windows := StrSplit(allowedWins, "<~>")
-	
+
+	windows := StrSplit(permittedWins, "<~>", " `t")
+
 	For _, window in windows
-	{		
-		If (RegExMatch(window, "i).*\.exe$"))
+	{
+		If (RegExMatch(window, "i).+\.exe$"))
 			GroupAdd, %groupName%, ahk_exe %window%
 		Else
 			GroupAdd, %groupName%, %window%
 	}
-	
+
 	Return groupName
 }
 
 
 parseHotkey(hk, toSend:=False)
 {
-	If (hk = "")
+	If (hk = "" || hk = "+")
 		Return ""
 
 	Global REPEAT_MODIFIER_ERROR
 	StringLower, hk, hk
-	MsgBox, %hk%
-	keys := StrSplit(hk, "+")
-	
-	If (toSend)
-		parsedHk := "{" . hk . "}"
+
+	If (hk = "++")
+		keys := ["+"]
 	Else
-		parsedHk := hk
-	
+		keys := StrSplit(hk, "+", " `t")
+
+	If (toSend)
+		parsedHk := "{" . keys[1] . "}"
+	Else
+		parsedHk := keys[1]
+
 	If (keys.Length() > 1)
 	{
 		parsedHk := _handleModifiedHotkey(keys, toSend)
-			
+
 		If (parsedHK = "")
 		{
-			MsgBox, Error processing invalid hotkey %hk%. Repeating the same modifiers is not allowed.
-			
-			ExitApp, REPEAT_MODIFIER_ERROR
+			MsgBox, Error processing invalid hotkey %hk%.`nRepeating the same modifiers is not allowed.
+
+			ExitApp, %REPEAT_MODIFIER_ERROR%
 		}
 	}
-	MsgBox, %parsedHk%
-	
+
 	Return parsedHk
 }
 
@@ -268,7 +306,7 @@ parseHotkey(hk, toSend:=False)
 ; ------------------------------ Internal ------------------------------ ;
 
 
-_simulateKeys(keys)
+_emulateKeys(keys)
 {
 	For _, key in keys
 		Send %key%
@@ -285,13 +323,13 @@ _readINIFile(file)
 
 	If (headers = "" || headers = "ERROR")
 		Return ""
-	
+
 	Loop, Parse, headers, `n
 	{
 		header := A_LoopField
 
 		IniRead, keyValPairs, %file%, %A_LoopField%
-		
+
 		If (keyValPairs = "")
 			parsedINI[header] := ""
 		Else
@@ -305,7 +343,7 @@ _readINIFile(file)
 			}
 		}
 	}
-	
+
 	Return parsedINI
 }
 
@@ -319,7 +357,7 @@ _handleModifiedHotkey(keys, toSend:=False)
 	modifiedHk := ""
 
 	For _, key in keys
-	{		
+	{
 		Switch key
 		{
 		Case "win":
@@ -401,6 +439,6 @@ _handleModifiedHotkey(keys, toSend:=False)
 				modifiedHk := modifiedHk . key
 		}
 	}
-		
+
 	Return modifiedHK
 }
