@@ -12,11 +12,19 @@ SetTitleMatchMode RegEx ; Enable RegEx matching for window titles.
 
 ; ---------------------------- Global Constants ---------------------------- ;
 
+; Paths
+
 CONFIG_DIR := A_ScriptDir
 PROFILES_DIR := A_ScriptDir . "\Profiles"
+ICONS_DIR := A_ScriptDir . "\Icons"
 
 CONFIG_FILE := CONFIG_DIR . "\GKRConfig.ini"
 DEFAULT_PROFILE := PROFILES_DIR . "\DefaultProfile.ini"
+
+HOTKEYS_OFF_ICON := ICONS_DIR . "\gkr_off.ico"
+HOTKEYS_ON_ICON := ICONS_DIR . "\gkr_on.ico"
+
+; Key Modifiers
 
 CTRL_KEY := "^"
 LCTRL_KEY := "<^"
@@ -44,12 +52,15 @@ KEY_REBIND_ERROR := 6
 WINDOW_NAME_ERROR := 7
 
 
-; ------------------------------ Main ------------------------------ ;
+; ----------------------------- Main Functions ----------------------------- ;
 
 
 main:
 {
-	GKRState := "Off"
+	GKRStatus := "Off"
+
+	changeTrayIcon(HOTKEYS_OFF_ICON)
+
 	defaultConfig := "[General]"
 					   . "`nglobalHotkey=" . DEFAULT_GLOBAL_HOTKEY
 					   . "`n[Profile]"
@@ -64,7 +75,7 @@ main:
 
 	If (configSettings["General"]["globalHotkey"] = "")
 	{
-		MsgBox, Error processing missing global hotkey in:`n%CONFIG_FILE%
+		MsgBox, % "Error processing global hotkey in:`n" CONFIG_FILE "`nMissing global hotkey."
 
 		ExitApp, %GLOBAL_HOTKEY_ERROR%
 	}
@@ -76,7 +87,7 @@ main:
 
 	activityToggleFunc := Func("toggleGKRActivity")
 		.Bind(configSettings["General"]["activeProfile"]
-			  , winGroupName, keyRebinds)
+			  , winGroupName, keyRebinds, HOTKEYS_OFF_ICON, HOTKEYS_ON_ICON)
 
 	Try
 		Hotkey, %globalHotkey%, % activityToggleFunc
@@ -91,23 +102,25 @@ main:
 }
 
 
-toggleGKRActivity(profile, groupName, rebinds)
+toggleGKRActivity(profile, groupName, rebinds, offIcon, onIcon)
 {
-	Global GKRState
+	Global GKRStatus
 
-	If (GKRState = "On")
-		GKRState:= "Off"
+	If (GKRStatus = "On")
+		GKRStatus:= "Off"
 	Else
-		GKRState := "On"
+		GKRStatus := "On"
 
-	MsgBox, Hotkeys %GKRState%
-	rebindKeysForGroup(rebinds, groupName, GKRState)
+	MsgBox, % "Hotkey Remapping " GKRStatus
+	changeTrayIcon(offIcon, onIcon, GKRStatus)
+
+	rebindKeysForGroup(rebinds, groupName, GKRStatus)
 
 	Return
 }
 
 
-; ------------------------------ Rebinds ------------------------------ ;
+; ------------------------ Rebind-Specific Functions ------------------------ ;
 
 
 parseRebinds(rebinds)
@@ -122,13 +135,13 @@ parseRebinds(rebinds)
 	{
 		If (fromKey != "" && toKeys = "")
 		{
-			MsgBox, Error binding %fromKey% to nothing in:`n%profile%
+			MsgBox, % "Error binding " fromKey " to nothing in:`n" profile
 
 			ExitApp, %KEY_REBIND_ERROR%
 		}
 		Else If (fromKey = "" && toKeys != "")
 		{
-			MsgBox, Error binding nothing to %toKeys% in:`n%profile%
+			MsgBox, % "Error binding nothing to " toKeys " in:`n" profile
 
 			ExitApp, %KEY_REBIND_ERROR%
 		}
@@ -148,19 +161,19 @@ parseRebinds(rebinds)
 
 
 
-rebindKeysForGroup(rebinds, groupName, hkState)
+rebindKeysForGroup(rebinds, groupName, hkStatus)
 {
 	Global KEY_REBIND_ERROR
 
 	If (rebinds != "")
 		For fromKey, toKeys in rebinds
-			rebindKeys(fromKey, toKeys, groupName, hkState)
+			rebindKeys(fromKey, toKeys, groupName, hkStatus)
 
 	Return
 }
 
 
-rebindKeys(fromKey, toKeys, groupName, hkState)
+rebindKeys(fromKey, toKeys, groupName, hkStatus)
 {
 	Global KEY_REBIND_ERROR
 	emulateToKeys := Func("_emulateKeys").Bind(toKeys)
@@ -168,7 +181,7 @@ rebindKeys(fromKey, toKeys, groupName, hkState)
 	Try
 	{
 		Hotkey, IfWinActive, ahk_group %groupName%
-		Hotkey, ~%fromKey%, % emulateToKeys, %hkState%
+		Hotkey, ~%fromKey%, % emulateToKeys, %hkStatus%
 	}
 	Catch e
 	{
@@ -181,7 +194,40 @@ rebindKeys(fromKey, toKeys, groupName, hkState)
 }
 
 
-; ------------------------------ Utility ------------------------------ ;
+; --------------------------- Utility Functions --------------------------- ;
+
+
+changeTrayIcon(icn, altIcn:="", globalStatus:="Off")
+{
+	If (globalStatus = "Off")
+	{
+		If (icn = "")
+			Return
+
+		Try
+			Menu, Tray, Icon, %icn%
+		Catch e
+		{
+			MsgBox, % "Error loading icon:`n" icn
+			Menu, Tray, Icon, *
+		}
+	}
+	Else
+	{
+		If (altIcn = "")
+			Return
+
+		Try
+			Menu, Tray, Icon, %altIcn%
+		Catch e
+		{
+			MsgBox, % "Error loading icon:`n" altIcn
+			Menu, Tray, Icon, *
+		}
+	}
+
+	Return
+}
 
 
 initConfiguration(configFile, defaultConfig)
@@ -190,7 +236,7 @@ initConfiguration(configFile, defaultConfig)
 
 	If (configFile = "")
 	{
-		MsgBox, Error processing configuration file.`nNo path specified for a valid config file.
+		MsgBox, % "Error processing configuration file.`nNo path specified for a valid config file."
 
 		ExitApp, %MISSING_CONFIG_ERROR%
 	}
@@ -205,7 +251,7 @@ initConfiguration(configFile, defaultConfig)
 
 		If (ErrorLevel)
 		{
-			MsgBox, Error creating folder %configDir%.`nPlease check your disk space or try running the program as administrator.
+			MsgBox, % "Error creating folder:`n" configDir "`nPlease check your disk space or try running the program as administrator."
 
 			ExitApp, %CONFIG_WRITE_ERROR%
 		}
@@ -217,7 +263,7 @@ initConfiguration(configFile, defaultConfig)
 
 		If (ErrorLevel)
 		{
-			MsgBox, Error writing file %configFile%.`nPlease check your disk space or try running the program as administrator.
+			MsgBox, "Error writing file:`n" configFile "`nPlease check your disk space or try running the program as administrator."
 
 			ExitApp, %CONFIG_WRITE_ERROR%
 		}
@@ -227,7 +273,7 @@ initConfiguration(configFile, defaultConfig)
 
 	If (config = "")
 	{
-		MsgBox, 0x4,, Error reading file %configFile%.`nRecreating it may solve the problem.`nRecreate it?
+		MsgBox, 0x4,, % "Error reading file:`n" configFile "`nRecreating it may solve the problem.`nRecreate it?"
 
 		IfMsgBox Yes
 		{
@@ -293,7 +339,7 @@ parseHotkey(hk, toSend:=False)
 
 		If (parsedHK = "")
 		{
-			MsgBox, Error processing invalid hotkey %hk%.`nRepeating the same modifiers is not allowed.
+			MsgBox, % "Error processing invalid hotkey " hk ".`nRepeating the same modifiers is not allowed."
 
 			ExitApp, %REPEAT_MODIFIER_ERROR%
 		}
@@ -303,7 +349,7 @@ parseHotkey(hk, toSend:=False)
 }
 
 
-; ------------------------------ Internal ------------------------------ ;
+; --------------------------- Internal Functions --------------------------- ;
 
 
 _emulateKeys(keys)
@@ -338,7 +384,7 @@ _readINIFile(file)
 
 			Loop, Parse, keyValPairs, `n
 			{
-				pair := StrSplit(A_LoopField, "=")
+				pair := StrSplit(A_LoopField, "=", " `t")
 				parsedINI[header][pair[1]] := pair[2]
 			}
 		}
