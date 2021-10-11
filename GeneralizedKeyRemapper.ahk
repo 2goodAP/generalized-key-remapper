@@ -14,7 +14,7 @@ SetTitleMatchMode RegEx ; Enable RegEx matching for window titles.
 
 ; Meta
 
-VERSION := "v0.1"
+VERSION := "v1.0.0"
 
 ; Paths
 
