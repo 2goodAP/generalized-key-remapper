@@ -158,10 +158,10 @@ parseRemaps(remaps, disableFromKey:="")
 		{
 			toKeys := StrSplit(toKeys, "<~>", " `t")
 			parsedFromKey := parseHotkey(fromKey)
-			
+
 			If (disableFromKey != "yes")
 				parsedFromKey := "~" . parsedFromKey
-			
+
 			parsedRemaps[parsedFromKey] := []
 
 			For _, toKey in toKeys
