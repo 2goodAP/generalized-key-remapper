@@ -1,4 +1,4 @@
-# Generalized Key Remabpper (GKR)
+# Generalized Key Remapper (GKR)
 
 Have you ever had the problem where an app or a game does not allow you to remap some of their most critical functionality to specific buttons.
  This problem may be specially relevant to gamers as many game titles do not allow remapping inputs.
@@ -43,11 +43,13 @@ After downloading, simply run the script "GeneralizedKeyRemapper.exe".
  
 __Directory Structure:__
 
+```
 .  
 |- GeneralizedKeyRemapper.exe  
 |- GKRConfig.ini  
 |- profiles  
    |- default_profile.ini
+```
  
 To change rebinds, open up "profiles\default_profile.ini" in Notepad, or any other text editor,
  and add lines in the `[Rebinds]` section as follows:
@@ -56,8 +58,10 @@ To change rebinds, open up "profiles\default_profile.ini" in Notepad, or any oth
 		permitted_windows=
 		disable_source_key=
 		[Rebinds]
-		__a=b__
-		__ctrl+z=alt+f+s__
+		<pre>
+		</b>a=b</b>
+		</b>ctrl+z=alt+f+s</b>
+		</pre>
 
 Then restart the "GeneralizedKeyRemapper.exe" script and press the *global hotkey*, which is `ctrl+f2` by default (hold down ctrl and then press f2) to enable hotkeys.
  The tray icon will change to a white keyboard, a popup window will show up with the message "Hotkey Remapping On" and the remaps will now be available.
@@ -102,7 +106,9 @@ __Notes:__
 		[General]
 		global_hotkey=ctrl+f2
 		[Profile]
-		active_profile=__D:\profiles\default_profile.ini__
+		<pre>
+		active_profile=<b>D:\profiles\default_profile.ini</b>
+		</pre>
 
 2. Please refer to the [AutoHotkey Keylist](https://www.autohotkey.com/docs/KeyList.htm) to access the list of all the valid key names.
 
@@ -114,7 +120,9 @@ To change the global hotkey, simply change the value of the `global_hotkey` fiel
 Example:
 
 		[General]
-		__global_hotkey=ctrl+shift+z__
+		<pre>
+		<b>global_hotkey=ctrl+shift+z</b>
+		</pre>
 		[Profile]
 		active_profile=d:\profiles\default_profiles.ini
 		
@@ -133,7 +141,9 @@ Example:
 		[General]
 		global_hotkey=ctrl+f2
 		[Profile]
-		__active_profile=d:\profiles\my_profile.ini__
+		<pre>
+		</b>active_profile=d:\profiles\my_profile.ini</b>
+		</pre>
 	
 This change either applies the settings present in "d:\profiles\my_profile.ini" (or creates the file with default settings, if it does not already exist) on the next run of the script.
 
@@ -147,15 +157,17 @@ Example:
 		permitted_windows=
 		disable_source_key=
 		[Remapping]
-		__a=b<~>c<~>ctrl+a__
-		__x=ctrl+x<~>ctrl+v__
+		<pre>
+		<b>a=b<~>c<~>ctrl+a</b>
+		<b>x=ctrl+x<~>ctrl+v</b>
+		</pre>
 
-__Note:__ The "<~>" symbol is used to separate multiple target keys from one another.
+__Note:__ The `<~>` symbol is used to separate multiple target keys from one another.
 
-After adding the remaps "a=b<~>c<~>ctrl+a" and "x=ctrl+x<~>ctrl+v" into your profile file, restarting the script and turning on the hotkeys,
+After adding the remaps `a=b<~>c<~>ctrl+a` and `x=ctrl+x<~>ctrl+v` into your profile file, restarting the script and turning on the hotkeys,
 
-- Pressing the "a" key will produce the same result as pressing "a", "b", "c" and "ctrl+a" sequentially.
-- Pressing the "x" key will produce the same result as pressing "ctrl+x" and "ctrl+v" sequentially.
+- Pressing the `a` key will produce the same result as pressing `a`, `b`, `c` and `ctrl+a` sequentially.
+- Pressing the "x" key will produce the same result as pressing `ctrl+x` and `ctrl+v` sequentially.
 
 You can add as many of such remappings as you feel necessary.
 
@@ -171,7 +183,9 @@ Example:
 		permitted_windows=
 		disable_source_key=
 		[Remapping]
-		__ctrl+a=shift+a__
+		<pre>
+		<b>ctrl+a=shift+a</b>
+		</pre>
 
 In the above example, while pressing `ctrl+a`, both `ctrl+a` as well as `shift+a` get registered.
  If you are in a text editing program, that can replace all the text in window to an `A`.
@@ -182,7 +196,9 @@ Example:
 
 		[Permission]
 		permitted_windows=
-		__disable_source_key=Yes__
+		<pre>
+		<b>disable_source_key=Yes</b>
+		</pre>
 		[Remapping]
 		ctrl+a=shift+a
 
@@ -199,12 +215,14 @@ This may be a source of inconvenience as some hotkeys may be intrusive to some o
 Example:
 
 		[Permission]
-		__permitted_windows=AutoHotkey Help<~>Untitled - Notepad__
+		<pre>
+		<b>permitted_windows=AutoHotkey Help<~>Untitled - Notepad</b>
+		</pre>
 		disable_source_key=
 		[Remapping]
 		ctrl+a=shift+a
 		
-__Note:__ The "<~>" symbol is used to separate multiple window titles from one another.
+__Note:__ The `<~>` symbol is used to separate multiple window titles from one another.
 		
 Applying the example profile above will make sure that the `ctrl+a` hotkey remap will activate only when a window with a title *exactly matching* "AutoHotkey Help" or "Untitled - Notepad" are currently active.
 
@@ -213,7 +231,9 @@ You can also specify __regular expressions__ to represent the window titles to m
 Example:
 
 		[Permission]
-		__permitted_windows=.*AutoHotkey.*<~>.*Notepad.*__
+		<pre>
+		<b>permitted_windows=.*AutoHotkey.*<~>.*Notepad.*</b>
+		</pre>
 		disable_source_key=
 		[Remapping]
 		ctrl+a=shift+a
@@ -226,7 +246,9 @@ You can also supply various __options__ to the regular expressions to further ge
 Example:
 
 		[Permission]
-		__permitted_windows=i).*autohotkey.*<~>i).*notepad.*__
+		<pre>
+		<b>permitted_windows=i).*autohotkey.*<~>i).*notepad.*</b>
+		</pre>
 		disable_source_key=
 		[Remapping]
 		ctrl+a=shift+a
