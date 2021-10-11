@@ -54,14 +54,14 @@ __Directory Structure:__
 To change rebinds, open up "profiles\default_profile.ini" in Notepad, or any other text editor,
  and add lines in the `[Rebinds]` section as follows:
 
-		[Permission]
-		permitted_windows=
-		disable_source_key=
-		[Rebinds]
-		<pre>
-		</b>a=b</b>
-		</b>ctrl+z=alt+f+s</b>
-		</pre>
+	[Permission]
+	permitted_windows=
+	disable_source_key=
+	[Rebinds]
+	<pre>
+	</b>a=b</b>
+	</b>ctrl+z=alt+f+s</b>
+	</pre>
 
 Then restart the "GeneralizedKeyRemapper.exe" script and press the *global hotkey*, which is `ctrl+f2` by default (hold down ctrl and then press f2) to enable hotkeys.
  The tray icon will change to a white keyboard, a popup window will show up with the message "Hotkey Remapping On" and the remaps will now be available.
@@ -103,12 +103,12 @@ __Notes:__
 1. Many of the settings explained below are present in the active profile file. The path to this file can be found in "GKRConfig.ini" under the "[Profile]" section.
  In the example given below the active profile file is located at "__D:\profiles\default_profile.ini__"
 
-		[General]
-		global_hotkey=ctrl+f2
-		[Profile]
-		<pre>
-		active_profile=<b>D:\profiles\default_profile.ini</b>
-		</pre>
+	[General]
+	global_hotkey=ctrl+f2
+	[Profile]
+	<pre>
+	active_profile=<b>D:\profiles\default_profile.ini</b>
+	</pre>
 
 2. Please refer to the [AutoHotkey Keylist](https://www.autohotkey.com/docs/KeyList.htm) to access the list of all the valid key names.
 
@@ -119,12 +119,12 @@ To change the global hotkey, simply change the value of the `global_hotkey` fiel
 
 Example:
 
-		[General]
-		<pre>
-		<b>global_hotkey=ctrl+shift+z</b>
-		</pre>
-		[Profile]
-		active_profile=d:\profiles\default_profiles.ini
+	[General]
+	<pre>
+	<b>global_hotkey=ctrl+shift+z</b>
+	</pre>
+	[Profile]
+	active_profile=d:\profiles\default_profiles.ini
 		
 This changes your global hotkey to `ctrl+shift+z` instead of the default `ctrl+f2` on subsequent runs.
 
@@ -138,12 +138,12 @@ If the specified profile file does not already exist, it will be created automat
  
 Example:
 		
-		[General]
-		global_hotkey=ctrl+f2
-		[Profile]
-		<pre>
-		</b>active_profile=d:\profiles\my_profile.ini</b>
-		</pre>
+	[General]
+	global_hotkey=ctrl+f2
+	[Profile]
+	<pre>
+	</b>active_profile=d:\profiles\my_profile.ini</b>
+	</pre>
 	
 This change either applies the settings present in "d:\profiles\my_profile.ini" (or creates the file with default settings, if it does not already exist) on the next run of the script.
 
@@ -153,21 +153,21 @@ In the active profile file, you can assign remaps such that pressing one key wil
 
 Example:
 
-		[Permission]
-		permitted_windows=
-		disable_source_key=
-		[Remapping]
-		<pre>
-		<b>a=b<~>c<~>ctrl+a</b>
-		<b>x=ctrl+x<~>ctrl+v</b>
-		</pre>
+	[Permission]
+	permitted_windows=
+	disable_source_key=
+	[Remapping]
+	<pre>
+	<b>a=b<~>c<~>ctrl+a</b>
+	<b>x=ctrl+x<~>ctrl+v</b>
+	</pre>
 
 __Note:__ The `<~>` symbol is used to separate multiple target keys from one another.
 
 After adding the remaps `a=b<~>c<~>ctrl+a` and `x=ctrl+x<~>ctrl+v` into your profile file, restarting the script and turning on the hotkeys,
 
 - Pressing the `a` key will produce the same result as pressing `a`, `b`, `c` and `ctrl+a` sequentially.
-- Pressing the "x" key will produce the same result as pressing `ctrl+x` and `ctrl+v` sequentially.
+- Pressing the `x` key will produce the same result as pressing `ctrl+x` and `ctrl+v` sequentially.
 
 You can add as many of such remappings as you feel necessary.
 
@@ -179,13 +179,13 @@ In the examples given in the [previous section](#Remap-One-Keypress-to-Behave-as
 
 Example:
 
-		[Permission]
-		permitted_windows=
-		disable_source_key=
-		[Remapping]
-		<pre>
-		<b>ctrl+a=shift+a</b>
-		</pre>
+	[Permission]
+	permitted_windows=
+	disable_source_key=
+	[Remapping]
+	<pre>
+	<b>ctrl+a=shift+a</b>
+	</pre>
 
 In the above example, while pressing `ctrl+a`, both `ctrl+a` as well as `shift+a` get registered.
  If you are in a text editing program, that can replace all the text in window to an `A`.
@@ -194,13 +194,13 @@ To avoid this problem, you can set the `disable_source_key` field to `Yes` in th
 
 Example:
 
-		[Permission]
-		permitted_windows=
-		<pre>
-		<b>disable_source_key=Yes</b>
-		</pre>
-		[Remapping]
-		ctrl+a=shift+a
+	[Permission]
+	permitted_windows=
+	<pre>
+	<b>disable_source_key=Yes</b>
+	</pre>
+	[Remapping]
+	ctrl+a=shift+a
 
 Now the default behavior behavior of `ctrl+a` will be supressed and it will only behave as it it were `shift+a`.
 
@@ -214,13 +214,13 @@ This may be a source of inconvenience as some hotkeys may be intrusive to some o
  
 Example:
 
-		[Permission]
-		<pre>
-		<b>permitted_windows=AutoHotkey Help<~>Untitled - Notepad</b>
-		</pre>
-		disable_source_key=
-		[Remapping]
-		ctrl+a=shift+a
+	[Permission]
+	<pre>
+	<b>permitted_windows=AutoHotkey Help<~>Untitled - Notepad</b>
+	</pre>
+	disable_source_key=
+	[Remapping]
+	ctrl+a=shift+a
 		
 __Note:__ The `<~>` symbol is used to separate multiple window titles from one another.
 		
@@ -230,13 +230,13 @@ You can also specify __regular expressions__ to represent the window titles to m
 
 Example:
 
-		[Permission]
-		<pre>
-		<b>permitted_windows=.*AutoHotkey.*<~>.*Notepad.*</b>
-		</pre>
-		disable_source_key=
-		[Remapping]
-		ctrl+a=shift+a
+	[Permission]
+	<pre>
+	<b>permitted_windows=.*AutoHotkey.*<~>.*Notepad.*</b>
+	</pre>
+	disable_source_key=
+	[Remapping]
+	ctrl+a=shift+a
 		
 Applying the example profile above will make sure that the `ctrl+a` hotkey remap will activate when a window title contains "AutoHotkey" or "Notepad" at any location,
  i.e. the hotkey remap `ctrl+a` will work under windows with titles containing "Notepad", "Notepad++", "AutoHotkey Help", "Ahk2Exe for AutoHotkey", and so on.
@@ -245,13 +245,13 @@ You can also supply various __options__ to the regular expressions to further ge
 
 Example:
 
-		[Permission]
-		<pre>
-		<b>permitted_windows=i).*autohotkey.*<~>i).*notepad.*</b>
-		</pre>
-		disable_source_key=
-		[Remapping]
-		ctrl+a=shift+a
+	[Permission]
+	<pre>
+	<b>permitted_windows=i).*autohotkey.*<~>i).*notepad.*</b>
+	</pre>
+	disable_source_key=
+	[Remapping]
+	ctrl+a=shift+a
 		
 The above configuration file has the same effect as the example before as the "i)" option allows for case-insensitive matching,
  i.e. the hotkey remap `ctrl+a` will not only work under windows with titles containing "Notepad", "Notepad++", "AutoHotkey Help", "Ahk2Exe for AutoHotkey"
