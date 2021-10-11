@@ -148,7 +148,7 @@ global_hotkey=ctrl+f2
 	
 This change either applies the settings present in __d:\profiles\my_profile.ini__ (or creates the file with default settings, if it does not already exist) on the next run of the script.
 
-### Remap One Keyress to Behave as Multiple Keypresses
+### Remap One Keypress to Behave as Multiple Keypresses
 
 In the *active profile file*, you can assign remaps such that pressing one key will emulate the pressing of multiple keys.
 
