@@ -12,14 +12,18 @@ SetTitleMatchMode RegEx ; Enable RegEx matching for window titles.
 
 ; ---------------------------- Global Constants ---------------------------- ;
 
+;
+
+VERSION := "v0.1"
+
 ; Paths
 
 CONFIG_DIR := A_ScriptDir
-PROFILES_DIR := A_ScriptDir . "\Profiles"
-ICONS_DIR := A_ScriptDir . "\Icons"
+PROFILES_DIR := A_ScriptDir . "\profiles"
+ICONS_DIR := A_ScriptDir . "\icons"
 
 CONFIG_FILE := CONFIG_DIR . "\GKRConfig.ini"
-DEFAULT_PROFILE := PROFILES_DIR . "\DefaultProfile.ini"
+DEFAULT_PROFILE := PROFILES_DIR . "\default_profile.ini"
 
 HOTKEYS_OFF_ICON := ICONS_DIR . "\gkr_off.ico"
 HOTKEYS_ON_ICON := ICONS_DIR . "\gkr_on.ico"
@@ -37,9 +41,12 @@ RSHIFT_KEY := ">+"
 WIN_KEY := "#"
 
 ALT_KEY := "!"
+LALT_KEY := "<!"
+RALT_KEY := ">!"
+
 ALTGR_KEY := "<^>!"
 
-DEFAULT_GLOBAL_HOTKEY := "CTRL+F2"
+DEFAULT_GLOBAL_HOTKEY := "ctrl+f2"
 
 ; ---------------------------- Error Constants ---------------------------- ;
 
@@ -48,7 +55,7 @@ CONFIG_READ_ERROR := 2
 CONFIG_WRITE_ERROR := 3
 GLOBAL_HOTKEY_ERROR := 4
 REPEAT_MODIFIER_ERROR := 5
-KEY_REBIND_ERROR := 6
+KEY_REMAP_ERROR := 6
 WINDOW_NAME_ERROR := 7
 
 
@@ -62,32 +69,34 @@ main:
 	changeTrayIcon(HOTKEYS_OFF_ICON)
 
 	defaultConfig := "[General]"
-					   . "`nglobalHotkey=" . DEFAULT_GLOBAL_HOTKEY
+					   . "`nglobal_hotkey=" . DEFAULT_GLOBAL_HOTKEY
 					   . "`n[Profile]"
-					   . "`nactiveProfile=" . DEFAULT_PROFILE
+					   . "`nactive_profile=" . DEFAULT_PROFILE
 	defaultProfile := "[Permission]"
-					  . "`npermittedWindows="
-					  . "`n[Rebinds]"
+					  . "`npermitted_windows="
+					  . "`ndisable_source_key="
+					  . "`n[Remapping]"
 
-	configSettings := initConfiguration(CONFIG_FILE, defaultConfig)
-	profileSettings := initConfiguration(configSettings["Profile"]["activeProfile"]
-										 , defaultProfile)
+	configSettings := readConfigFile(CONFIG_FILE, defaultConfig)
+	profileSettings := readConfigFile(configSettings["profile"]["active_profile"]
+									  , defaultProfile)
 
-	If (configSettings["General"]["globalHotkey"] = "")
+	If (configSettings["general"]["global_hotkey"] = "")
 	{
 		MsgBox, % "Error processing global hotkey in:`n" CONFIG_FILE "`nMissing global hotkey."
 
 		ExitApp, %GLOBAL_HOTKEY_ERROR%
 	}
 
-	globalHotkey := parseHotkey(configSettings["General"]["globalHotkey"])
-	keyRebinds := parseRebinds(profileSettings["Rebinds"])
+	globalHotkey := parseHotkey(configSettings["general"]["global_hotkey"])
+	keyRemaps := parseRemaps(profileSettings["remapping"]
+							 , profileSettings["permission"]["disable_source_key"])
 
-	winGroupName := createWindowGroup(profileSettings["Permission"]["permittedWindows"])
+	winGroupName := createWindowGroup(profileSettings["permission"]["permitted_windows"])
 
 	activityToggleFunc := Func("toggleGKRActivity")
-		.Bind(configSettings["General"]["activeProfile"]
-			  , winGroupName, keyRebinds, HOTKEYS_OFF_ICON, HOTKEYS_ON_ICON)
+		.Bind(configSettings["general"]["active_profile"]
+			  , winGroupName, keyRemaps, HOTKEYS_OFF_ICON, HOTKEYS_ON_ICON)
 
 	Try
 		Hotkey, %globalHotkey%, % activityToggleFunc
@@ -102,7 +111,7 @@ main:
 }
 
 
-toggleGKRActivity(profile, groupName, rebinds, offIcon, onIcon)
+toggleGKRActivity(profile, groupName, remaps, offIcon, onIcon)
 {
 	Global GKRStatus
 
@@ -114,80 +123,84 @@ toggleGKRActivity(profile, groupName, rebinds, offIcon, onIcon)
 	MsgBox, % "Hotkey Remapping " GKRStatus
 	changeTrayIcon(offIcon, onIcon, GKRStatus)
 
-	rebindKeysForGroup(rebinds, groupName, GKRStatus)
+	remapKeysForGroup(remaps, groupName, GKRStatus)
 
 	Return
 }
 
 
-; ------------------------ Rebind-Specific Functions ------------------------ ;
+; ------------------------ Remap-Specific Functions ------------------------ ;
 
 
-parseRebinds(rebinds)
+parseRemaps(remaps, disableFromKey:="")
 {
-	If (rebinds = "")
+	If (remaps = "")
 		Return ""
 
-	Global KEY_REBIND_ERROR
-	parsedRebinds := {}
+	Global KEY_REMAP_ERROR
+	parsedRemaps := {}
 
-	For fromKey, toKeys in rebinds
+	For fromKey, toKeys in remaps
 	{
 		If (fromKey != "" && toKeys = "")
 		{
 			MsgBox, % "Error binding " fromKey " to nothing in:`n" profile
 
-			ExitApp, %KEY_REBIND_ERROR%
+			ExitApp, %KEY_REMAP_ERROR%
 		}
 		Else If (fromKey = "" && toKeys != "")
 		{
 			MsgBox, % "Error binding nothing to " toKeys " in:`n" profile
 
-			ExitApp, %KEY_REBIND_ERROR%
+			ExitApp, %KEY_REMAP_ERROR%
 		}
 		Else If (fromKey != "" && toKeys != "")
 		{
 			toKeys := StrSplit(toKeys, "<~>", " `t")
 			parsedFromKey := parseHotkey(fromKey)
-			parsedRebinds[parsedFromKey] := []
+			
+			If (disableFromKey != "yes")
+				parsedFromKey := "~" . parsedFromKey
+			
+			parsedRemaps[parsedFromKey] := []
 
 			For _, toKey in toKeys
-				parsedRebinds[parsedFromKey].Push(parseHotkey(toKey, True))
+				parsedRemaps[parsedFromKey].Push(parseHotkey(toKey, True))
 		}
 	}
 
-	Return parsedRebinds
+	Return parsedRemaps
 }
 
 
 
-rebindKeysForGroup(rebinds, groupName, hkStatus)
+remapKeysForGroup(remaps, groupName, hkStatus)
 {
-	Global KEY_REBIND_ERROR
+	Global KEY_REMAP_ERROR
 
-	If (rebinds != "")
-		For fromKey, toKeys in rebinds
-			rebindKeys(fromKey, toKeys, groupName, hkStatus)
+	If (remaps != "")
+		For fromKey, toKeys in remaps
+			remapKeys(fromKey, toKeys, groupName, hkStatus)
 
 	Return
 }
 
 
-rebindKeys(fromKey, toKeys, groupName, hkStatus)
+remapKeys(fromKey, toKeys, groupName, hkStatus)
 {
-	Global KEY_REBIND_ERROR
+	Global KEY_REMAP_ERROR
 	emulateToKeys := Func("_emulateKeys").Bind(toKeys)
 
 	Try
 	{
 		Hotkey, IfWinActive, ahk_group %groupName%
-		Hotkey, ~%fromKey%, % emulateToKeys, %hkStatus%
+		Hotkey, %fromKey%, % emulateToKeys, %hkStatus%
 	}
 	Catch e
 	{
-		MsgBox, % "Error processing rebind.`n" e.message
+		MsgBox, % "Error processing remap.`n" e.message
 
-		ExitApp, %KEY_REBIND_ERROR%
+		ExitApp, %KEY_REMAP_ERROR%
 	}
 
 	Return
@@ -230,7 +243,7 @@ changeTrayIcon(icn, altIcn:="", globalStatus:="Off")
 }
 
 
-initConfiguration(configFile, defaultConfig)
+readConfigFile(configFile, defaultConfig)
 {
 	Global MISSING_CONFIG_ERROR
 
@@ -278,7 +291,7 @@ initConfiguration(configFile, defaultConfig)
 		IfMsgBox Yes
 		{
 			FileDelete, %configFile%
-			config := initConfiguration(configFile, defaultConfig)
+			config := readConfigFile(configFile, defaultConfig)
 		}
 		Else
 			ExitApp, %CONFIG_READ_ERROR%
@@ -372,7 +385,7 @@ _readINIFile(file)
 
 	Loop, Parse, headers, `n
 	{
-		header := A_LoopField
+		StringLower, header, A_LoopField
 
 		IniRead, keyValPairs, %file%, %A_LoopField%
 
@@ -385,7 +398,12 @@ _readINIFile(file)
 			Loop, Parse, keyValPairs, `n
 			{
 				pair := StrSplit(A_LoopField, "=", " `t")
-				parsedINI[header][pair[1]] := pair[2]
+
+				key := pair[1], value := pair[2]
+				StringLower, key, key
+				StringLower, value, value
+
+				parsedINI[header][key] := value
 			}
 		}
 	}
@@ -396,9 +414,9 @@ _readINIFile(file)
 
 _handleModifiedHotkey(keys, toSend:=False)
 {
-	global WIN_KEY, CTRL_KEY, LCTRL_KEY, RCTRL_KEY
-	global SHIFT_KEY, LSHIFT_KEY, RSHIFT_KEY
-	global ALT_KEY, ALTGR_KEY
+	Global WIN_KEY, CTRL_KEY, LCTRL_KEY, RCTRL_KEY
+	Global SHIFT_KEY, LSHIFT_KEY, RSHIFT_KEY
+	Global ALT_KEY, LALT_KEY, RALT_KEY, ALTGR_KEY
 	foundMods := ""
 	modifiedHk := ""
 
@@ -467,6 +485,22 @@ _handleModifiedHotkey(keys, toSend:=False)
 			{
 				foundMods := foundMods . "," . ALT_KEY
 				modifiedHk := modifiedHk . ALT_KEY
+			}
+			Else
+				Return ""
+		Case "lalt":
+			if (not InStr(foundMods, LALT_KEY))
+			{
+				foundMods := foundMods . "," . LALT_KEY
+				modifiedHk := modifiedHk . LALT_KEY
+			}
+			Else
+				Return ""
+		Case "ralt":
+			if (not InStr(foundMods, RALT_KEY))
+			{
+				foundMods := foundMods . "," . RALT_KEY
+				modifiedHk := modifiedHk . RALT_KEY
 			}
 			Else
 				Return ""
