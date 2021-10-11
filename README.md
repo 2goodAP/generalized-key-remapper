@@ -33,11 +33,12 @@ __GKR aims to solve these problems with a simple, lightweight and configurable A
 
 
 ## Installation
-
+Download the zip file from the __Releases__ section of the repo to get the latest version of the script.
+ After downloading the zip file, simply extract it into a directory of its own to obtain the __GeneralizedKeyRemapper.exe__ script.
 
 ## Usage and Basic Configuration
 
-After downloading, simply run the script __GeneralizedKeyRemapper.exe__.
+Once the installation is complete, simply run the script __GeneralizedKeyRemapper.exe__.
  A black keyboard icon will appear in the system tray signifying that the script is now running.
  On the very first run, a configuration file __GKRConfig.ini__, a profile directory __profiles__ and a profile file __profiles\default_profile.ini__ will automatically be generated,
  as shown in the directory structure below. 
