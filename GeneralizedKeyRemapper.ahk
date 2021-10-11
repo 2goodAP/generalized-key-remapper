@@ -12,7 +12,7 @@ SetTitleMatchMode RegEx ; Enable RegEx matching for window titles.
 
 ; ---------------------------- Global Constants ---------------------------- ;
 
-;
+; Meta
 
 VERSION := "v0.1"
 
